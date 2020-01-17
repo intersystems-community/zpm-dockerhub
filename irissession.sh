@@ -8,7 +8,6 @@ $@
 if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
 zn "%SYS"
 do ##class(SYS.Container).QuiesceForBundling()
-Do ##class(Security.Users).UnExpireUserPasswords("*")
 halt
 EOF
 
