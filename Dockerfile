@@ -1,5 +1,5 @@
 ARG IMAGE=store/intersystems/iris-community:2019.4.0.383.0
-ARG DEV=1
+ARG DEV=0
 FROM $IMAGE
 
 USER root
