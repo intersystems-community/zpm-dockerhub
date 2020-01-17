@@ -1,4 +1,5 @@
 ARG IMAGE=store/intersystems/iris-community:2019.4.0.383.0
+ARG DEV=1
 FROM $IMAGE
 
 USER root
@@ -15,5 +16,8 @@ COPY irissession.sh /
 
 SHELL ["/irissession.sh"]
 RUN \
+  zn "%SYS" do ##class(SYS.Container).QuiesceForBundling() \
+  If $DEV Do ##class(Security.Users).UnExpireUserPasswords("*") \
+
   Do $system.OBJ.Load("/tmp/deps/zpm.xml", "ck")
 
