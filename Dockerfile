@@ -16,8 +16,5 @@ COPY irissession.sh /
 
 SHELL ["/irissession.sh"]
 RUN \
-  zn "%SYS" do ##class(SYS.Container).QuiesceForBundling() \
-  If $DEV Do ##class(Security.Users).UnExpireUserPasswords("*") \
-
   Do $system.OBJ.Load("/tmp/deps/zpm.xml", "ck")
 
