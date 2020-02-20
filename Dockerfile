@@ -17,4 +17,7 @@ COPY irissession.sh /
 SHELL ["/irissession.sh"]
 RUN \
   Do $system.OBJ.Load("/tmp/deps/zpm.xml", "ck")
+# bringing the standard shell back
+SHELL ["/bin/bash", "-c"]
+
 
