@@ -32,7 +32,7 @@ jobs:
         docker push intersystemsdc/iris-community:2020.1.0.209.0-zpm
     
     - name: build docker image for IRIS4H - 2020.1
-      run: docker build --build-arg DEV=1 --build-arg IMAGE=store/intersystems/irishealth-community:2020.1.0.209.0 -t intersystemsdc/irishealth-community:2020.1.0.383.0-zpm .
+      run: docker build --build-arg DEV=1 --build-arg IMAGE=store/intersystems/irishealth-community:2020.1.0.209.0 -t intersystemsdc/irishealth-community:2020.1.0.209.0-zpm .
     - name: push IRIS4H to docker hub 
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
