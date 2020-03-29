@@ -9,7 +9,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-    - name: build docker image for IRIS
+    - name: build ZPM docker image for IRIS 2019.4
       run: docker build -t intersystemsdc/iris-community:2019.4.0.383.0-zpm .
     - name: push IRIS to docker hub 
       run: |
@@ -24,16 +24,16 @@ jobs:
         docker push intersystemsdc/irishealth-community:2019.4.0.383.0-zpm
     
     - uses: actions/checkout@master
-    - name: build docker image for IRIS - dev mode
-      run: docker build --build-arg DEV=1 -t intersystemsdc/iris-community:2019.4.0.383.0-zpm-dev .
+    - name: build docker image for IRIS - 2020.1
+      run: docker build --build-arg IMAGE=store/intersystems/iris-community:2020.1.0.209.0 -t intersystemsdc/iris-community:2020.1.0.209.0-zpm .
     - name: push IRIS to docker hub 
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker push intersystemsdc/iris-community:2019.4.0.383.0-zpm-dev
+        docker push intersystemsdc/iris-community:2020.1.0.209.0-zpm
     
-    - name: build docker image for IRIS4H - dev mode
-      run: docker build --build-arg DEV=1 --build-arg IMAGE=store/intersystems/irishealth-community:2019.4.0.383.0 -t intersystemsdc/irishealth-community:2019.4.0.383.0-zpm-dev .
+    - name: build docker image for IRIS4H - 2020.1
+      run: docker build --build-arg DEV=1 --build-arg IMAGE=store/intersystems/irishealth-community:2020.1.0.209.0 -t intersystemsdc/irishealth-community:2020.1.0.383.0-zpm .
     - name: push IRIS4H to docker hub 
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker push intersystemsdc/irishealth-community:2019.4.0.383.0-zpm-dev
+        docker push intersystemsdc/irishealth-community:2020.1.0.209.0-zpm
