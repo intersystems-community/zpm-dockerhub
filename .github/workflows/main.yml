@@ -6,34 +6,31 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    matrix:
+      image: [
+        "iris-community:2019.4.0.383.0",
+        "irishealth-community:2019.4.0.383.0",
+        "iris-community:2020.1.0.215.0",
+        "irishealth-community:2020.1.0.215.0",
+        "iris-community:2020.2.0.196.0",
+        "irishealth-community:2020.2.0.196.0"
+      ]
+      matrix:
+        image-name: [
+          "IRIS CE 2019.4.0.383.0",
+          "IRIS CE4H 2019.4.0.383.0",
+          "IRIS CE 2020.1.0.215.0",
+          "IRIS CE4H 2020.1.0.215.0",
+          "IRIS CE 2020.2.0.196.0",
+          "IRIS CE4H 2020.2.0.196.0"
+        ]
     steps:
     - uses: actions/checkout@master
-    - name: build ZPM docker image for IRIS 2019.4
-      run: docker build -t intersystemsdc/iris-community:2019.4.0.383.0-zpm .
-    - name: push IRIS to docker hub 
+  
+    - name: build docker image for ${{ matrix.image-name }}
+      run: docker build --build-arg IMAGE=store/intersystems/${{ matrix.image }} -t intersystemsdc/${{ matrix.image }}-zpm .
+    - name: push ${{ matrix.image-name }} to docker hub 
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker push intersystemsdc/iris-community:2019.4.0.383.0-zpm
+        docker push intersystemsdc/${{ matrix.image-name }}-zpm
     
-    - name: build docker image for IRIS4H
-      run: docker build --build-arg IMAGE=store/intersystems/irishealth-community:2019.4.0.383.0 -t intersystemsdc/irishealth-community:2019.4.0.383.0-zpm .
-    - name: push IRIS4H to docker hub 
-      run: |
-        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker push intersystemsdc/irishealth-community:2019.4.0.383.0-zpm
-    
-    - uses: actions/checkout@master
-    - name: build docker image for IRIS - 2020.1
-      run: docker build --build-arg IMAGE=store/intersystems/iris-community:2020.1.0.209.0 -t intersystemsdc/iris-community:2020.1.0.209.0-zpm .
-    - name: push IRIS to docker hub 
-      run: |
-        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker push intersystemsdc/iris-community:2020.1.0.209.0-zpm
-    
-    - name: build docker image for IRIS4H - 2020.1
-      run: docker build --build-arg DEV=1 --build-arg IMAGE=store/intersystems/irishealth-community:2020.1.0.209.0 -t intersystemsdc/irishealth-community:2020.1.0.209.0-zpm .
-    - name: push IRIS4H to docker hub 
-      run: |
-        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker push intersystemsdc/irishealth-community:2020.1.0.209.0-zpm
