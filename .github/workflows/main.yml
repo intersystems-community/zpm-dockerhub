@@ -12,20 +12,14 @@ jobs:
         "iris-community:2020.2.0.196.0",
         "irishealth-community:2020.2.0.196.0"
         ]
-        image-name: [
-          "IRIS CE 2020.1.0.215.0",
-          "IRIS CE4H 2020.1.0.215.0",
-          "IRIS CE 2020.2.0.196.0",
-          "IRIS CE4H 2020.2.0.196.0"
-        ]
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@master
   
-    - name: build docker image for ${{ matrix.image-name }}
+    - name: build docker image for ${{ matrix.image }}
       run: docker build --build-arg IMAGE=store/intersystems/${{ matrix.image }} -t intersystemsdc/${{ matrix.image }}-zpm .
-    - name: push ${{ matrix.image-name }} to docker hub 
+    - name: push ${{ matrix.image }} to docker hub 
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
         docker push intersystemsdc/${{ matrix.image }}-zpm
