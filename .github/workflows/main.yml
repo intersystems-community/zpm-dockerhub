@@ -28,5 +28,5 @@ jobs:
     - name: push ${{ matrix.image-name }} to docker hub 
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker push intersystemsdc/${{ matrix.image-name }}-zpm
+        docker push intersystemsdc/${{ matrix.image }}-zpm
     
