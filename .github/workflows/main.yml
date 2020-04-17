@@ -4,18 +4,17 @@ on: [push]
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-    matrix:
-      image: [
+    strategy:
+      matrix:
+        image: [
         "iris-community:2019.4.0.383.0",
         "irishealth-community:2019.4.0.383.0",
         "iris-community:2020.1.0.215.0",
         "irishealth-community:2020.1.0.215.0",
         "iris-community:2020.2.0.196.0",
         "irishealth-community:2020.2.0.196.0"
-      ]
-      image-name: [
+        ]
+        image-name: [
           "IRIS CE 2019.4.0.383.0",
           "IRIS CE4H 2019.4.0.383.0",
           "IRIS CE 2020.1.0.215.0",
@@ -23,6 +22,8 @@ jobs:
           "IRIS CE 2020.2.0.196.0",
           "IRIS CE4H 2020.2.0.196.0"
         ]
+    runs-on: ubuntu-latest
+    
     steps:
     - uses: actions/checkout@master
   
