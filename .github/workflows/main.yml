@@ -11,9 +11,7 @@ jobs:
         "irishealth-community:2020.3.0.200.0",
         "iris-community:2020.2.0.204.0",
         "irishealth-community:2020.2.0.204.0",
-        "iris-aa-community:2020.3.0AA.331.0",
-        "iris-community-arm64:2020.3.0.200.0",
-        "irishealth-community-arm64:2020.3.0.200.0"
+        "iris-aa-community:2020.3.0AA.331.0"
         ]
     runs-on: ubuntu-latest
     
