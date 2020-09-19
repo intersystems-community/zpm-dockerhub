@@ -7,6 +7,7 @@ do ##class(%SYSTEM.Process).CurrentDirectory("$PWD")
 $@
 if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
 zn "%SYS" 
+Do ##class(Security.Users).UnExpireUserPasswords("*")
 do ##class(SYS.Container).QuiesceForBundling()
 halt
 EOF
