@@ -10,8 +10,7 @@ jobs:
         "iris-community:2020.3.0.221.0",
         "irishealth-community:2020.3.0.221.0",
         "iris-community:2020.2.0.204.0",
-        "irishealth-community:2020.2.0.204.0",
-        "iris-aa-community:2020.3.0AA.331.0"
+        "irishealth-community:2020.2.0.204.0"
         ]
     runs-on: ubuntu-latest
     
