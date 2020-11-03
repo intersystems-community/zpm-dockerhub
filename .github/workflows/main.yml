@@ -9,8 +9,8 @@ jobs:
         image: [
         "iris-community:2020.3.0.221.0",
         "irishealth-community:2020.3.0.221.0",
-        "iris-community:2020.4.0.521.0",
-        "irishealth-community:2020.4.0.521.0",
+        "iris-community:2020.4.0.524.0",
+        "irishealth-community:2020.4.0.524.0",
         "iris-ml-community:2020.3.0.302.0"
         ]
     runs-on: ubuntu-latest
