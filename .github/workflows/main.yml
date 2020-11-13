@@ -20,7 +20,12 @@ jobs:
   
     - name: build docker image for ${{ matrix.image }}
       run: docker build --build-arg IMAGE=store/intersystems/${{ matrix.image }} -t intersystemsdc/${{ matrix.image }}-zpm .
-    - name: push ${{ matrix.image }} to docker hub 
+    - name: inspect docker image size
+      run: |
+        docker history intersystemsdc/${{ matrix.image }}-zpm
+        docker images -f label=org.opencontainers.image.vendor=InterSystems
+    - name: push intersystemsdc/${{ matrix.image }}-zpm to docker hub 
+      if: github.event.repository.fork == false
       run: |
         docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
         docker push intersystemsdc/${{ matrix.image }}-zpm

@@ -8,17 +8,20 @@ USER root
 WORKDIR /opt/irisapp
 RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp
 
-RUN mkdir -p /tmp/deps \
- && cd /tmp/deps \
- && wget -q https://pm.community.intersystems.com/packages/zpm/latest/installer -O zpm.xml
-
 USER irisowner
-COPY irissession.sh /
 
-SHELL ["/irissession.sh"]
 RUN \
-  Do $system.OBJ.Load("/tmp/deps/zpm.xml", "ck")
-# bringing the standard shell back
-SHELL ["/bin/bash", "-c"]
-
-
+  wget -q https://pm.community.intersystems.com/packages/zpm/latest/installer -O /tmp/zpm.xml && \
+  iris start $ISC_PACKAGE_INSTANCENAME quietly && \
+  /bin/echo -e \
+    "Do ##class(%SYSTEM.OBJ).Load(\"/tmp/zpm.xml\", \"ck\")\n" \
+    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
+    "do ##class(SYS.Container).QuiesceForBundling()\n" \
+    "halt" \
+  | iris session $ISC_PACKAGE_INSTANCENAME -U %SYS && \
+  iris stop $ISC_PACKAGE_INSTANCENAME quietly && \
+  rm -rf /usr/irissys/mgr/IRIS.WIJ; \
+  rm -rf /usr/irissys/mgr/journal/*; \
+  rm -rf /usr/irissys/mgr/stream/*; \
+  rm -rf /usr/irissys/mgr/iristemp/*; \
+  rm /tmp/zpm.xml
