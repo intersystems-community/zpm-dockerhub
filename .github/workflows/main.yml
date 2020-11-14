@@ -19,7 +19,12 @@ jobs:
     - uses: actions/checkout@master
   
     - name: build docker image for ${{ matrix.image }}
-      run: docker build --build-arg IMAGE=store/intersystems/${{ matrix.image }} -t intersystemsdc/${{ matrix.image }}-zpm .
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 10
+        max_attempts: 3
+        retry_on: timeout
+        command: docker build --build-arg IMAGE=store/intersystems/${{ matrix.image }} -t intersystemsdc/${{ matrix.image }}-zpm .
     - name: inspect docker image size
       run: |
         docker history intersystemsdc/${{ matrix.image }}-zpm
