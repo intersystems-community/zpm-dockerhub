@@ -12,7 +12,8 @@ RUN \
     "set sc=##class(Config.Namespaces).Create(\"%ALL\",.pNS)\n" \
     "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
     "set pDB(\"Directory\")=\"/usr/irissys/mgr/zpm/\"\n" \
-    "set sc=##class(SYS.Database).CreateDatabase(\"/usr/irissys/mgr/zpm/\")\n" \
+    "set sc=##class(SYS.Database).CreateDatabase(pDB(\"Directory\"), 30)\n" \
+    "do ##class(SYS.Database).MountDatabase(pDB(\"Directory\"))" \
     "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
     "set sc=##class(Config.Databases).Create(\"ZPM\",.pDB)\n" \
     "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
@@ -29,8 +30,12 @@ RUN \
     "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
     "set sc=##Class(Config.MapRoutines).Create(\"%ALL\",\"%ZLANGC00\",.pMap)\n" \
     "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set sc = ##class(%SYSTEM.OBJ).Load(\"/tmp/zpm.xml\", \"c/multicompile=0\")\n" \
+    "set sc = ##class(%SYSTEM.OBJ).Load(\"/tmp/zpm.xml\", \"c\")\n" \
     "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
+    "do ##class(SYS.Database).Defragment(pDB(\"Directory\"))" \
+    "do ##class(SYS.Database).CompactDatabase(pDB(\"Directory\"),100)" \
+    "do ##class(SYS.Database).ReturnUnusedSpace(pDB(\"Directory\"))" \
+    "do ##class(SYS.Database).DismountDatabase(pDB(\"Directory\"))" \
     "halt" \
   | iris session $ISC_PACKAGE_INSTANCENAME -U %SYS && \
   iris stop $ISC_PACKAGE_INSTANCENAME quietly
