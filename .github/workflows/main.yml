@@ -7,8 +7,8 @@ jobs:
     strategy:
       matrix:
         image: [
-        "iris-community:2020.3.0.221.0",
-        "irishealth-community:2020.3.0.221.0",
+        "iris-community:2021.1.0.205.0",
+        "irishealth-community:2021.1.0.205.0",
         "iris-community:2020.4.0.547.0",
         "irishealth-community:2020.4.0.547.0",
         "iris-ml-community:2020.3.0.302.0"
