@@ -45,7 +45,10 @@ FROM $IMAGE
 USER root
 
 WORKDIR /opt/irisapp
-RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp
+RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp && \
+  apt-get update && \
+  DEBIAN_FRONTEND=noninteractive apt-get -y install git && \
+  apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 USER irisowner
 
