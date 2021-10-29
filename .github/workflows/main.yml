@@ -7,10 +7,10 @@ jobs:
     strategy:
       matrix:
         version:
-          - tag: 2021.1.0.215.0
+          - tag: 2021.1.0.215.3
             latest: true
             image: iris-community
-          - tag: 2021.1.0.215.0
+          - tag: 2021.1.0.215.3
             latest: true
             image: irishealth-community
           - tag: 2021.1.0.215.0
@@ -35,7 +35,7 @@ jobs:
         max_attempts: 3
         retry_on: timeout
         command: |
-          docker build --build-arg IMAGE=store/intersystems/${{ matrix.version.image }}:${{ matrix.version.tag }} \
+          docker build --build-arg IMAGE=containers.intersystems.com/intersystems/${{ matrix.version.image }}:${{ matrix.version.tag }} \
            -t intersystemsdc/${{ matrix.version.image }}:${{ matrix.version.tag }}-zpm .
     - name: inspect docker image size
       run: |
