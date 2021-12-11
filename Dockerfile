@@ -50,7 +50,7 @@ RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp && \
   DEBIAN_FRONTEND=noninteractive apt-get -y install git && \
   apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-USER irisowner
+USER ${ISC_PACKAGE_MGRUSER}
 
-COPY --from=0 --chown=irisowner:irisuser /usr/irissys/iris.cpf /usr/irissys/iris.cpf
-COPY --from=0 --chown=irisowner:irisuser /usr/irissys/mgr/zpm /usr/irissys/mgr/zpm
+COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/iris.cpf /usr/irissys/iris.cpf
+COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/mgr/zpm /usr/irissys/mgr/zpm
