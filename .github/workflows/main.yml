@@ -13,16 +13,16 @@ jobs:
     strategy:
       matrix:
         version:
-          - tag: 2021.2.0.617.0
+          - tag: 2021.2.0.649.0
             latest: true
             image: iris-community
-          - tag: 2021.2.0.617.0
+          - tag: 2021.2.0.649.0
             latest: true
             image: irishealth-community
-          - tag: 2021.2.0.617.0
+          - tag: 2021.2.0.649.0
             latest: true
             image: iris-ml-community
-          - tag: 2021.2.0.617.0
+          - tag: 2021.2.0.649.0
             latest: true
             image: irishealth-ml-community
           - tag: 2021.1.0.215.3
