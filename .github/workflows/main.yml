@@ -13,18 +13,28 @@ jobs:
     strategy:
       matrix:
         version:
-          - tag: 2021.2.0.649.0
+          # latest preview
+          - tag: 2022.1.0.114.0
+            preview: true
+            image: iris-community
+          - tag: 2022.1.0.114.0
+            preview: true
+            image: irishealth-community
+          
+          # latest stable
+          - tag: 2021.2.0.651.0
             latest: true
             image: iris-community
-          - tag: 2021.2.0.649.0
+          - tag: 2021.2.0.651.0
             latest: true
             image: irishealth-community
-          - tag: 2021.2.0.649.0
+          - tag: 2021.2.0.651.0
             latest: true
             image: iris-ml-community
-          - tag: 2021.2.0.649.0
+          - tag: 2021.2.0.651.0
             latest: true
             image: irishealth-ml-community
+
           - tag: 2021.1.0.215.3
             image: iris-community
           - tag: 2021.1.0.215.3
@@ -33,10 +43,6 @@ jobs:
             image: iris-ml-community
           - tag: 2021.1.0.215.3
             image: irishealth-ml-community
-          # - tag: 2020.4.0.547.0
-          #   image: iris-community
-          # - tag: 2020.4.0.547.0
-          #   image: irishealth-community
     runs-on: ubuntu-latest
     
     steps:
@@ -65,3 +71,8 @@ jobs:
       run: |
         docker tag intersystemsdc/${{ matrix.version.image }}:${{ matrix.version.tag }}-zpm intersystemsdc/${{ matrix.version.image }}:latest
         docker push intersystemsdc/${{ matrix.version.image }}:latest
+    - name: preview version
+      if: github.event.repository.fork == false && matrix.version.preview
+      run: |
+        docker tag intersystemsdc/${{ matrix.version.image }}:${{ matrix.version.tag }}-zpm intersystemsdc/${{ matrix.version.image }}:preview
+        docker push intersystemsdc/${{ matrix.version.image }}:preview
