@@ -12,15 +12,7 @@ jobs:
   build:
     strategy:
       matrix:
-        version:
-          # latest preview
-          - tag: 2022.1.0.114.0
-            preview: true
-            image: iris-community
-          - tag: 2022.1.0.114.0
-            preview: true
-            image: irishealth-community
-          
+        version:          
           # latest stable
           - tag: 2022.1.0.209.0
             latest: true
