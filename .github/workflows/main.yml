@@ -22,26 +22,23 @@ jobs:
             image: irishealth-community
           
           # latest stable
-          - tag: 2021.2.0.651.0
+          - tag: 2022.1.0.209.0
             latest: true
             image: iris-community
-          - tag: 2021.2.0.651.0
+          - tag: 2022.1.0.209.0
             latest: true
             image: irishealth-community
-          - tag: 2021.2.0.651.0
+          - tag: 2022.1.0.209.0
             latest: true
             image: iris-ml-community
-          - tag: 2021.2.0.651.0
-            latest: true
-            image: irishealth-ml-community
 
-          - tag: 2021.1.0.215.3
+          - tag: 2021.2.0.651.0
             image: iris-community
-          - tag: 2021.1.0.215.3
+          - tag: 2021.2.0.651.0
             image: irishealth-community
-          - tag: 2021.1.0.215.3
+          - tag: 2021.2.0.651.0
             image: iris-ml-community
-          - tag: 2021.1.0.215.3
+          - tag: 2021.2.0.651.0
             image: irishealth-ml-community
     runs-on: ubuntu-latest
     
