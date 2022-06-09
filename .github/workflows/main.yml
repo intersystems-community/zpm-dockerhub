@@ -1,67 +1,139 @@
 name: CI
 
-on: 
+on:
   push:
     branches:
       - master
   repository_dispatch:
     types:
       - release
-
+env:
+  orgname: intersystemsdc
+  name: |
+    iris-community
+    irishealth-community
+    iris-ml-community
+    irishealth-ml-community
+  latest: 2022.1.0.209.0
+  version: |
+    2021.2.0.651.0
+  # preview: 2022.2.0.001.0
 jobs:
-  build:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.set-matrix.outputs.name }}
+      version: ${{ steps.set-matrix.outputs.version }}
+    steps:
+      - id: set-matrix
+        run: |
+          echo ::set-output name=name::`jq -Rsc 'split("\n") | map(select(length > 0))' <<< $'${{ env.name }}' `
+          echo ::set-output name=version::`jq -Rsc 'split("\n") | map(select(length > 0))' <<< $'${{ env.latest }}\n${{ env.version }}\n${{ env.preview }}' `
+  x64:
+    needs:
+      - version
     strategy:
       matrix:
-        version:          
-          # latest stable
-          - tag: 2022.1.0.209.0
-            latest: true
-            image: iris-community
-          - tag: 2022.1.0.209.0
-            latest: true
-            image: irishealth-community
-          - tag: 2022.1.0.209.0
-            latest: true
-            image: iris-ml-community
-
-          - tag: 2021.2.0.651.0
-            image: iris-community
-          - tag: 2021.2.0.651.0
-            image: irishealth-community
-          - tag: 2021.2.0.651.0
-            image: iris-ml-community
-          - tag: 2021.2.0.651.0
-            image: irishealth-ml-community
+        name: ${{ fromJSON(needs.version.outputs.name ) }}
+        version: ${{ fromJSON(needs.version.outputs.version ) }}
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@master
+      - name: set variables
+        id: vars
+        run: |
+          echo ::set-output name=base::containers.intersystems.com/intersystems/${{ matrix.name }}:${{ matrix.version }}
+          image=${{ env.orgname }}/${{ matrix.name }}
+          version=${{ matrix.version }}-zpm
+          echo ::set-output name=image::$image
+          echo ::set-output name=version::$version
+          tags=" -t $image:$version"
+          [ '${{ matrix.version }}' == '${{ env.latest }}' ] && tags+=" -t $image:latest"
+          [ '${{ matrix.version }}' == '${{ env.preview }}' ] && tags+=" -t $image:preview"
+          echo ::set-output name=tags::$tags
+      - uses: actions/checkout@master
+      - name: pull docker image
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_on: timeout
+          command: |
+            docker pull ${{ steps.vars.outputs.base }}
+      - name: build docker image
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: timeout
+          command: |
+            docker build --build-arg IMAGE=${{ steps.vars.outputs.base }} ${{ steps.vars.outputs.tags }} .
+      - name: push to docker hub
+        if: github.event.repository.fork == false
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          tags="${{ steps.vars.outputs.tags }}";tags=${tags// -t / }
+          echo $tags | xargs -n1 sh -c 'docker push $0'
 
-    - name: build docker image for ${{ matrix.version.image }}:${{ matrix.version.tag }}
-      uses: nick-invision/retry@v2
-      with:
-        timeout_minutes: 10
-        max_attempts: 3
-        retry_on: timeout
-        command: |
-          docker build --build-arg IMAGE=containers.intersystems.com/intersystems/${{ matrix.version.image }}:${{ matrix.version.tag }} \
-           -t intersystemsdc/${{ matrix.version.image }}:${{ matrix.version.tag }}-zpm .
-    - name: inspect docker image size
-      run: |
-        docker history intersystemsdc/${{ matrix.version.image }}:${{ matrix.version.tag }}-zpm
-        docker images -f label=org.opencontainers.image.vendor=InterSystems
-    - name: push intersystemsdc/${{ matrix.version.image }}:${{ matrix.version.tag }}-zpm to docker hub 
-      if: github.event.repository.fork == false
-      run: |
-        docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-        docker push intersystemsdc/${{ matrix.version.image }}:${{ matrix.version.tag }}-zpm
-    - name: latest version
-      if: github.event.repository.fork == false && matrix.version.latest
-      run: |
-        docker tag intersystemsdc/${{ matrix.version.image }}:${{ matrix.version.tag }}-zpm intersystemsdc/${{ matrix.version.image }}:latest
-        docker push intersystemsdc/${{ matrix.version.image }}:latest
-    - name: preview version
-      if: github.event.repository.fork == false && matrix.version.preview
-      run: |
-        docker tag intersystemsdc/${{ matrix.version.image }}:${{ matrix.version.tag }}-zpm intersystemsdc/${{ matrix.version.image }}:preview
-        docker push intersystemsdc/${{ matrix.version.image }}:preview
+  arm64:
+    needs:
+      - version
+      - x64
+    strategy:
+      fail-fast: false
+      matrix:
+        name: ${{ fromJSON(needs.version.outputs.name ) }}
+        version: ${{ fromJSON(needs.version.outputs.version ) }}
+    runs-on:
+      - self-hosted
+      - arm64
+    steps:
+      - name: set variables
+        id: vars
+        run: |
+          arm=-arm64
+          echo ::set-output name=base::containers.intersystems.com/intersystems/${{ matrix.name }}$arm:${{ matrix.version }}
+          image=${{ env.orgname }}/${{ matrix.name }}$arm
+          version=${{ matrix.version }}-zpm
+          echo ::set-output name=image::$image
+          echo ::set-output name=version::$version
+          tags=" -t $image:$version"
+          [ '${{ matrix.version }}' == '${{ env.latest }}' ] && tags+=" -t $image:latest"
+          [ '${{ matrix.version }}' == '${{ env.preview }}' ] && tags+=" -t $image:preview"
+          echo ::set-output name=tags::$tags
+      - uses: actions/checkout@master
+      - name: pull docker image
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_on: timeout
+          command: |
+            docker pull ${{ steps.vars.outputs.base }}
+      - name: build docker image
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: timeout
+          command: |
+            docker build --no-cache --build-arg IMAGE=${{ steps.vars.outputs.base }} ${{ steps.vars.outputs.tags }} .
+            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+      - name: push to docker hub
+        if: github.event.repository.fork == false
+        run: |
+          tags="${{ steps.vars.outputs.tags }}";tags=${tags// -t / }
+          echo $tags | xargs -n1 sh -c 'docker push $0'
+      - name: update manifest
+        if: github.event.repository.fork == false
+        run: |
+          tags="${{ steps.vars.outputs.tags }}";tags=${tags// -t / }
+          echo $tags | xargs -n1 bash -c 'docker manifest rm ${1//-arm64/}' - $1
+          echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
+          echo $tags | xargs -n1 bash -c 'docker manifest create ${1//-arm64/} ${1//-arm64/} $1 --amend' - $1
+          echo $tags | xargs -n1 bash -c 'docker manifest push ${1//-arm64/}' - $1
+          echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
+      - name: cleanup
+        if: always()
+        run: |
+          tags="${{ steps.vars.outputs.tags }}";tags=${tags// -t / }
+          echo $tags | xargs -n1 bash -c 'docker rmi -f $1' - $1
