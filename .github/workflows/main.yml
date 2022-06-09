@@ -127,7 +127,7 @@ jobs:
         if: github.event.repository.fork == false
         run: |
           tags="${{ steps.vars.outputs.tags }}";tags=${tags// -t / }
-          echo $tags | xargs -n1 bash -c 'docker manifest rm ${1//-arm64/}' - $1
+          echo $tags | xargs -n1 bash -c 'docker manifest rm ${1//-arm64/} || true' - $1
           echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
           echo $tags | xargs -n1 bash -c 'docker manifest create ${1//-arm64/} ${1//-arm64/} $1 --amend' - $1
           echo $tags | xargs -n1 bash -c 'docker manifest push ${1//-arm64/}' - $1
