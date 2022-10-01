@@ -17,7 +17,7 @@ env:
   latest: 2022.1.0.209.0
   version: |
     2021.2.0.651.0
-  preview: 2022.2.0.311.0
+  preview: 2022.2.0.345.0
 jobs:
   version:
     runs-on: ubuntu-latest
@@ -41,7 +41,7 @@ jobs:
       - name: set variables
         id: vars
         run: |
-          echo ::set-output name=base::containers.intersystems.com/intersystems/${{ matrix.name }}:${{ matrix.version }}
+          echo ::set-output name=base::intersystems/${{ matrix.name }}:${{ matrix.version }}
           image=${{ env.orgname }}/${{ matrix.name }}
           version=${{ matrix.version }}-zpm
           echo ::set-output name=image::$image
@@ -91,7 +91,7 @@ jobs:
         id: vars
         run: |
           arm=-arm64
-          echo ::set-output name=base::containers.intersystems.com/intersystems/${{ matrix.name }}$arm:${{ matrix.version }}
+          echo ::set-output name=base::intersystems/${{ matrix.name }}$arm:${{ matrix.version }}
           image=${{ env.orgname }}/${{ matrix.name }}$arm
           version=${{ matrix.version }}-zpm
           echo ::set-output name=image::$image
