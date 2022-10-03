@@ -32,7 +32,9 @@ jobs:
   x64:
     needs:
       - version
+    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         name: ${{ fromJSON(needs.version.outputs.name ) }}
         version: ${{ fromJSON(needs.version.outputs.version ) }}
@@ -41,7 +43,7 @@ jobs:
       - name: set variables
         id: vars
         run: |
-          echo ::set-output name=base::intersystems/${{ matrix.name }}:${{ matrix.version }}
+          echo ::set-output name=base::containers.intersystems.com/intersystems/${{ matrix.name }}:${{ matrix.version }}
           image=${{ env.orgname }}/${{ matrix.name }}
           version=${{ matrix.version }}-zpm
           echo ::set-output name=image::$image
@@ -78,6 +80,7 @@ jobs:
     needs:
       - version
       - x64
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -91,7 +94,7 @@ jobs:
         id: vars
         run: |
           arm=-arm64
-          echo ::set-output name=base::intersystems/${{ matrix.name }}$arm:${{ matrix.version }}
+          echo ::set-output name=base::containers.intersystems.com/intersystems/${{ matrix.name }}$arm:${{ matrix.version }}
           image=${{ env.orgname }}/${{ matrix.name }}$arm
           version=${{ matrix.version }}-zpm
           echo ::set-output name=image::$image
