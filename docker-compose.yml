@@ -5,8 +5,9 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
+    command: --ckeck-caps false
     ports: 
-      - 51773
+      - 1972
       - 52774:52773
       - 53773
     volumes:
