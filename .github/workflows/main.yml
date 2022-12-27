@@ -17,7 +17,6 @@ env:
   latest: 2022.2.0.368.0
   version: |
     2022.1.1.374.0
-    2021.2.0.651.0
   preview: 2022.3.0.570.0
 jobs:
   version:
@@ -28,14 +27,12 @@ jobs:
     steps:
       - id: set-matrix
         run: |
-          echo ::set-output name=name::`jq -Rsc 'split("\n") | map(select(length > 0))' <<< $'${{ env.name }}' `
-          echo ::set-output name=version::`jq -Rsc 'split("\n") | map(select(length > 0))' <<< $'${{ env.latest }}\n${{ env.version }}\n${{ env.preview }}' `
-  x64:
+          echo name=`jq -Rsc 'split("\n") | map(select(length > 0))' <<< $'${{ env.name }}' ` >> $GITHUB_OUTPUT
+          echo version=`jq -Rsc 'split("\n") | map(select(length > 0))' <<< $'${{ env.latest }}\n${{ env.version }}\n${{ env.preview }}' ` >> $GITHUB_OUTPUT
+  build:
     needs:
       - version
-    continue-on-error: true
     strategy:
-      fail-fast: false
       matrix:
         name: ${{ fromJSON(needs.version.outputs.name ) }}
         version: ${{ fromJSON(needs.version.outputs.version ) }}
@@ -44,16 +41,28 @@ jobs:
       - name: set variables
         id: vars
         run: |
-          echo ::set-output name=base::containers.intersystems.com/intersystems/${{ matrix.name }}:${{ matrix.version }}
+          echo "base=containers.intersystems.com/intersystems/${{ matrix.name }}:${{ matrix.version }}"  >> $GITHUB_OUTPUT
+          echo "basearm=containers.intersystems.com/intersystems/${{ matrix.name }}-arm64:${{ matrix.version }}" >> $GITHUB_OUTPUT
           image=${{ env.orgname }}/${{ matrix.name }}
+          [ '${{ secrets.DOCKER_ORGNAME }}' != '' ] && image=${{ secrets.DOCKER_ORGNAME }}/${{ matrix.name }}
           version=${{ matrix.version }}-zpm
-          echo ::set-output name=image::$image
-          echo ::set-output name=version::$version
+          echo "image=$image" >> $GITHUB_OUTPUT
+          echo "version=$version" >> $GITHUB_OUTPUT
           tags=" -t $image:$version"
           [ '${{ matrix.version }}' == '${{ env.latest }}' ] && tags+=" -t $image:latest"
           [ '${{ matrix.version }}' == '${{ env.preview }}' ] && tags+=" -t $image:preview"
-          echo ::set-output name=tags::$tags
-      - uses: actions/checkout@master
+          echo "tags=$tags" >> $GITHUB_OUTPUT
+          tagsarm=" -t $image-arm64:$version"
+          [ '${{ matrix.version }}' == '${{ env.latest }}' ] && tagsarm+=" -t $image-arm64:latest"
+          [ '${{ matrix.version }}' == '${{ env.preview }}' ] && tagsarm+=" -t $image-arm64:preview"
+          echo "tagsarm=$tagsarm" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          platforms: linux/amd64,linux/arm64
       - name: pull docker image
         uses: nick-invision/retry@v2
         with:
@@ -62,84 +71,57 @@ jobs:
           retry_on: timeout
           command: |
             docker pull ${{ steps.vars.outputs.base }}
-      - name: build docker image
+      - name: pull arm64 docker image
+        id: pullarm
+        continue-on-error: true
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_on: timeout
+          command: |
+            docker pull ${{ steps.vars.outputs.basearm }}
+      - name: build x86 docker image
+        id: build
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
           command: |
-            docker build --build-arg IMAGE=${{ steps.vars.outputs.base }} ${{ steps.vars.outputs.tags }} .
+            docker build --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tags }} --platform linux/amd64 --target x86 .
+      - name: docker login
+        id: login
+        continue-on-error: true
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
       - name: push to docker hub
-        if: github.event.repository.fork == false
+        id: push
+        if: steps.login.outcome == 'success'
         run: |
-          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
           tags="${{ steps.vars.outputs.tags }}";tags=${tags// -t / }
           echo $tags | xargs -n1 sh -c 'docker push $0'
-
-  arm64:
-    needs:
-      - version
-      - x64
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      matrix:
-        name: ${{ fromJSON(needs.version.outputs.name ) }}
-        version: ${{ fromJSON(needs.version.outputs.version ) }}
-    runs-on:
-      - self-hosted
-      - arm64
-    steps:
-      - name: set variables
-        id: vars
-        run: |
-          arm=-arm64
-          echo ::set-output name=base::containers.intersystems.com/intersystems/${{ matrix.name }}$arm:${{ matrix.version }}
-          image=${{ env.orgname }}/${{ matrix.name }}$arm
-          version=${{ matrix.version }}-zpm
-          echo ::set-output name=image::$image
-          echo ::set-output name=version::$version
-          tags=" -t $image:$version"
-          [ '${{ matrix.version }}' == '${{ env.latest }}' ] && tags+=" -t $image:latest"
-          [ '${{ matrix.version }}' == '${{ env.preview }}' ] && tags+=" -t $image:preview"
-          echo ::set-output name=tags::$tags
-      - uses: actions/checkout@master
-      - name: pull docker image
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          retry_on: timeout
-          command: |
-            docker pull ${{ steps.vars.outputs.base }}
-      - name: build docker image
+      - name: build arm64 docker image
+        id: buildarm
+        if: steps.pullarm.outcome == 'success'
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_on: timeout
           command: |
-            docker build --no-cache --build-arg IMAGE=${{ steps.vars.outputs.base }} ${{ steps.vars.outputs.tags }} .
-            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-      - name: push to docker hub
-        if: github.event.repository.fork == false
+            docker buildx build --load --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tagsarm }} --platform linux/arm64 --target arm .
+      - name: push arm64 to docker hub
+        id: pusharm
+        if: steps.buildarm.outcome == 'success'
         run: |
-          tags="${{ steps.vars.outputs.tags }}";tags=${tags// -t / }
+          tags="${{ steps.vars.outputs.tagsarm }}";tags=${tags// -t / }
           echo $tags | xargs -n1 sh -c 'docker push $0'
       - name: update manifest
-        if: github.event.repository.fork == false
+        if: steps.push.outcome == 'success' && steps.pusharm.outcome == 'success'
         run: |
-          tags="${{ steps.vars.outputs.tags }}";tags=${tags// -t / }
+          tags="${{ steps.vars.outputs.tagsarm }}";tags=${tags// -t / }
           echo $tags | xargs -n1 bash -c 'docker manifest rm ${1//-arm64/} || true' - $1
           echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
           echo $tags | xargs -n1 bash -c 'docker manifest create ${1//-arm64/} ${1//-arm64/} $1 --amend' - $1
           echo $tags | xargs -n1 bash -c 'docker manifest push ${1//-arm64/}' - $1
           echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
-      - name: cleanup
-        if: always()
-        run: |
-          tags="${{ steps.vars.outputs.tags }}";tags=${tags// -t / }
-          echo $tags | xargs -n1 bash -c 'docker rmi -f $1' - $1
-          docker rmi -f ${{ steps.vars.outputs.base }} || true
-          docker system prune -f || true

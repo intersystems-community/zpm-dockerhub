@@ -1,6 +1,5 @@
-ARG IMAGE=store/intersystems/iris-community:2020.1.0.199.0
-ARG IMAGE=store/intersystems/iris-community:2019.4.0.383.0
-ARG IMAGE=containers.intersystems.com/intersystems/iris:2022.2.0.368.0
+ARG IMAGE=containers.intersystems.com/intersystems/iris-community:2022.2.0.368.0
+ARG IMAGEARM=containers.intersystems.com/intersystems/iris-community-arm64:2022.2.0.368.0
 ARG DEV=0
 FROM $IMAGE
 
@@ -41,7 +40,22 @@ RUN \
   | iris session $ISC_PACKAGE_INSTANCENAME -U %SYS && \
   iris stop $ISC_PACKAGE_INSTANCENAME quietly
 
-FROM $IMAGE
+FROM --platform=linux/amd64 $IMAGE as x86
+
+USER root
+
+WORKDIR /opt/irisapp
+RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp && \
+  apt-get update && \
+  DEBIAN_FRONTEND=noninteractive apt-get -y install git && \
+  apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+USER ${ISC_PACKAGE_MGRUSER}
+
+COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/iris.cpf /usr/irissys/iris.cpf
+COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/mgr/zpm /usr/irissys/mgr/zpm
+
+FROM --platform=linux/arm64 $IMAGEARM as arm
 
 USER root
 
