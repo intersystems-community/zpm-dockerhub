@@ -33,6 +33,7 @@ jobs:
     needs:
       - version
     strategy:
+      fail-fast: false
       matrix:
         name: ${{ fromJSON(needs.version.outputs.name ) }}
         version: ${{ fromJSON(needs.version.outputs.version ) }}
