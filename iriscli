@@ -6,6 +6,8 @@ file=
 
 if [ -n "$IRIS_NAMESPACE" ]; then
     ARGS+=( -U $IRIS_NAMESPACE )
+elif [ -n "$IRISNAMESPACE" ]; then
+    ARGS+=( -U $IRISNAMESPACE )
 fi
 
 while [[ $# -gt 0 ]]; do
