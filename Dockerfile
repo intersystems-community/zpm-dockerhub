@@ -1,3 +1,5 @@
+# syntax = edrevo/dockerfile-plus
+
 ARG IMAGE=containers.intersystems.com/intersystems/iris-community:2022.2.0.368.0
 ARG IMAGEARM=containers.intersystems.com/intersystems/iris-community-arm64:2022.2.0.368.0
 ARG DEV=0
@@ -42,56 +44,8 @@ RUN \
 
 FROM --platform=linux/amd64 $IMAGE as x86
 
-USER root
-
-WORKDIR /opt/irisapp
-RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp && \
-  apt-get update && \
-  DEBIAN_FRONTEND=noninteractive apt-get -y install git && \
-  apt-get clean -y && rm -rf /var/lib/apt/lists/* && \
-  mkdir /docker-entrypoint-initdb.d/
-
-COPY docker-entrypoint.sh /
-
-USER ${ISC_PACKAGE_MGRUSER}
-
-COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/iris.cpf /usr/irissys/iris.cpf
-COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/mgr/zpm /usr/irissys/mgr/zpm
-
-RUN pip install irissqlcli
-
-ENV PATH="$PATH:/home/irisowner/.local/bin"
-
-COPY iriscli /home/irisowner/bin/
-
-ENTRYPOINT [ "/tini", "--", "/docker-entrypoint.sh" ]
-
-CMD [ "iris" ]
+INCLUDE+ Dockerfile.commun
 
 FROM --platform=linux/arm64 $IMAGEARM as arm
 
-USER root
-
-WORKDIR /opt/irisapp
-RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /opt/irisapp && \
-  apt-get update && \
-  DEBIAN_FRONTEND=noninteractive apt-get -y install git && \
-  apt-get clean -y && rm -rf /var/lib/apt/lists/* && \
-  mkdir /docker-entrypoint-initdb.d/
-
-COPY docker-entrypoint.sh /
-
-USER ${ISC_PACKAGE_MGRUSER}
-
-COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/iris.cpf /usr/irissys/iris.cpf
-COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/mgr/zpm /usr/irissys/mgr/zpm
-
-RUN pip install irissqlcli
-
-ENV PATH="$PATH:/home/irisowner/.local/bin"
-
-COPY iriscli /home/irisowner/bin/
-
-ENTRYPOINT [ "/tini", "--", "/docker-entrypoint.sh" ]
-
-CMD [ "iris" ]
+INCLUDE+ Dockerfile.commun
