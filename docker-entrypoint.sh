@@ -8,20 +8,32 @@ set -Eeo pipefail
 #  "$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
 file_env() {
 	local var="$1"
+	local var2="${var//_/}"
 	local fileVar="${var}_FILE"
+	local fileVar2="${var2}_FILE"
 	local def="${2:-}"
 	if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
 		printf >&2 'error: both %s and %s are set (but are exclusive)\n' "$var" "$fileVar"
 		exit 1
 	fi
+	if [ "${!var2:-}" ] && [ "${!fileVar2:-}" ]; then
+		printf >&2 'error: both %s and %s are set (but are exclusive)\n' "$var2" "$fileVar2"
+		exit 1
+	fi
 	local val="$def"
 	if [ "${!var:-}" ]; then
 		val="${!var}"
+	elif [ "${!var2:-}" ]; then
+		val="${!var2}"
 	elif [ "${!fileVar:-}" ]; then
 		val="$(< "${!fileVar}")"
+	elif [ "${!fileVar2:-}" ]; then
+		val="$(< "${!fileVar2}")"
 	fi
 	export "$var"="$val"
+	export "$var2"="$val"
 	unset "$fileVar"
+	unset "$fileVar2"
 }
 
 # check to see if this file is being run or sourced from another script
@@ -90,10 +102,6 @@ docker_setup_env() {
 	
 	file_env 'IRIS_URI' "iris+emb:///$IRIS_NAMESPACE"
 	
-	export IRIS_USERNAME=$IRIS_USERNAME
-	export IRIS_NAMESPACE=$IRIS_NAMESPACE
-	export IRIS_URI=$IRIS_URI
-
 	declare -g IRIS_INIT
 	if [ -s "$ISC_PACKAGE_INSTALLDIR/iris.init" ]; then
 		IRIS_INIT='true'

@@ -58,9 +58,9 @@ USER ${ISC_PACKAGE_MGRUSER}
 COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/iris.cpf /usr/irissys/iris.cpf
 COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/mgr/zpm /usr/irissys/mgr/zpm
 
-RUN pip install irissqlcli
-
 ENV PATH="$PATH:/home/irisowner/.local/bin"
+
+RUN pip install irissqlcli
 
 COPY iriscli /home/irisowner/bin/
 
@@ -86,9 +86,9 @@ USER ${ISC_PACKAGE_MGRUSER}
 COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/iris.cpf /usr/irissys/iris.cpf
 COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/irissys/mgr/zpm /usr/irissys/mgr/zpm
 
-RUN pip install irissqlcli
-
 ENV PATH="$PATH:/home/irisowner/.local/bin"
+
+RUN pip install irissqlcli
 
 COPY iriscli /home/irisowner/bin/
 
