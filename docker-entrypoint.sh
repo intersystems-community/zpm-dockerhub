@@ -76,7 +76,7 @@ docker_process_init_files() {
 #    ie: docker_process_sql -e 'select 1'
 #    ie: docker_process_sql < my-file.sql
 docker_process_sql() {
-	local query_runner=( irissqlcli )
+	local query_runner=( /usr/irissys/bin/irispython -m irissqlcli )
 
 	"${query_runner[@]}" "$@"
 }
