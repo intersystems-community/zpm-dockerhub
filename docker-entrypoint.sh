@@ -181,7 +181,11 @@ _main() {
         ARGS+=("$0 iris-after-start ${AFTER[@]@Q}")
         set -- "${ARGS[@]}"
 
+		# to solve issues with iris-main.log, switch to the home
+		pushd ~
+		touch iris-main.log
         /iris-main "$@"
+		popd
     elif [ "$1" = 'iris-after-start' ]; then
 		shift
 		while [[ $# -gt 0 ]]; do
