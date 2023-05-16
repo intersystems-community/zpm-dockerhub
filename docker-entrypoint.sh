@@ -2,6 +2,16 @@
 set -Eeo pipefail
 # TODO swap to -Eeuo pipefail above (after handling all potentially-unset variables)
 
+INSTALLDIR=$ISC_PACKAGE_INSTALLDIR
+if [ ! -z "$ISC_DATA_DIRECTORY" ]; then
+	if [ -d $ISC_DATA_DIRECTORY ] || mkdir $ISC_DATA_DIRECTORY 2>/dev/null; then
+		INSTALLDIR=$ISC_DATA_DIRECTORY		
+	else
+		printf >&2 'Durable folder: %s does not exists, or cannot be created' "$ISC_DATA_DIRECTORY"
+		exit 1
+	fi
+fi
+
 # usage: file_env VAR [DEFAULT]
 #    ie: file_env 'XYZ_DB_PASSWORD' 'example'
 # (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
@@ -103,7 +113,7 @@ docker_setup_env() {
 	file_env 'IRIS_URI' "iris+emb:///$IRIS_NAMESPACE"
 	
 	declare -g IRIS_INIT
-	if [ -s "$ISC_PACKAGE_INSTALLDIR/iris.init" ]; then
+	if [ -s "$INSTALLDIR/iris.init" ]; then
 		IRIS_INIT='true'
 	fi
 }
@@ -171,7 +181,11 @@ _main() {
         ARGS+=("$0 iris-after-start ${AFTER[@]@Q}")
         set -- "${ARGS[@]}"
 
+		# to solve issues with iris-main.log, switch to the home
+		pushd ~
+		touch iris-main.log
         /iris-main "$@"
+		popd
     elif [ "$1" = 'iris-after-start' ]; then
 		shift
 		while [[ $# -gt 0 ]]; do
@@ -185,7 +199,7 @@ _main() {
 		
 		if [ -z "$IRIS_INIT" ]; then
 
-			date > "$ISC_PACKAGE_INSTALLDIR/iris.init"
+			date > "$INSTALLDIR/iris.init"
 
 			docker_enable_callin
 
