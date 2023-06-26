@@ -65,7 +65,7 @@ docker_process_init_files() {
 			*.sh)
 				if [ -x "$f" ]; then
 					printf '%s: running %s\n' "$0" "$f"
-					"$f"
+					"$f" > /proc/1/fd/1 2>&1 
 				else
 					printf '%s: sourcing %s\n' "$0" "$f"
 					. "$f"
@@ -184,8 +184,12 @@ _main() {
 		# to solve issues with iris-main.log, switch to the home
 		pushd ~
 		touch iris-main.log
-        /iris-main "$@"
+        /iris-main "$@" &
+		PID=$!
 		popd
+		trap "while kill -s SIGTERM $PID > /dev/null 2>&1;do wait $PID; done" TERM
+		trap "while kill -s SIGINT $PID > /dev/null 2>&1;do wait $PID; done" INT
+		wait $PID
     elif [ "$1" = 'iris-after-start' ]; then
 		shift
 		while [[ $# -gt 0 ]]; do
