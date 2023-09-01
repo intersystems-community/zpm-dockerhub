@@ -1,3 +1,4 @@
 **
 !docker-entrypoint.sh
 !iriscli
+!iris_ipm.py
