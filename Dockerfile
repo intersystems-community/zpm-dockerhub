@@ -60,7 +60,7 @@ COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/iriss
 
 ENV PATH="$PATH:/home/irisowner/.local/bin"
 
-COPY iris_ipm.py /usr/irissys/lib/python/
+COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} iris_ipm.py /usr/irissys/lib/python/
 
 RUN pip install irissqlcli && \
     cat /usr/irissys/lib/python/iris_ipm.py >> /usr/irissys/lib/python/iris.py
@@ -91,7 +91,7 @@ COPY --from=0 --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /usr/iriss
 
 ENV PATH="$PATH:/home/irisowner/.local/bin"
 
-COPY iris_ipm.py /usr/irissys/lib/python/
+COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} iris_ipm.py /usr/irissys/lib/python/
 
 RUN pip install irissqlcli && \
     cat /usr/irissys/lib/python/iris_ipm.py >> /usr/irissys/lib/python/iris.py
