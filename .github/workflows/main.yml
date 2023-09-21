@@ -17,7 +17,7 @@ env:
   latest: 2023.2.0.227.0
   version: |
     2022.1.2.574.0
-  preview: 2023.2.0.221.0
+  preview: 2023.3.0.231.0
 jobs:
   version:
     runs-on: ubuntu-latest
