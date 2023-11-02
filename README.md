@@ -1,5 +1,6 @@
 # zpm-dockerhub
 repository for baking zpm enabled images for InterSystems IRIS
+Latest IRIS Version 2023.3.0.245.0.
 
 ![CI](https://github.com/intersystems-community/zpm-dockerhub/workflows/CI/badge.svg)
 
