@@ -120,10 +120,15 @@ jobs:
           echo $tags | xargs -n1 sh -c 'docker push $0'
       - name: update manifest
         if: steps.push.outcome == 'success' && steps.pusharm.outcome == 'success'
-        run: |
-          tags="${{ steps.vars.outputs.tagsarm }}";tags=${tags// -t / }
-          echo $tags | xargs -n1 bash -c 'docker manifest rm ${1//-arm64/} || true' - $1
-          echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
-          echo $tags | xargs -n1 bash -c 'docker manifest create ${1//-arm64/} ${1//-arm64/} $1 --amend' - $1
-          echo $tags | xargs -n1 bash -c 'docker manifest push ${1//-arm64/}' - $1
-          echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: timeout
+          command: |
+            tags="${{ steps.vars.outputs.tagsarm }}";tags=${tags// -t / }
+            echo $tags | xargs -n1 bash -c 'docker manifest rm ${1//-arm64/} || true' - $1
+            echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
+            echo $tags | xargs -n1 bash -c 'docker manifest create ${1//-arm64/} ${1//-arm64/} $1 --amend' - $1
+            echo $tags | xargs -n1 bash -c 'docker manifest push ${1//-arm64/}' - $1
+            echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
