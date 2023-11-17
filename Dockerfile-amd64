@@ -1,3 +1,5 @@
+# syntax = edrevo/dockerfile-plus
+
 INCLUDE+ Dockerfile-phase1
 
 FROM --platform=linux/amd64 $IMAGE as x86
