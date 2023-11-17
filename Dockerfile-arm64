@@ -1,0 +1,5 @@
+INCLUDE+ Dockerfile-phase1
+
+FROM --platform=linux/arm64 $IMAGEARM as arm
+
+INCLUDE+ Dockerfile-phase2
