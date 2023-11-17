@@ -14,10 +14,11 @@ env:
     irishealth-community
     iris-ml-community
     irishealth-ml-community
-  latest: 2023.2.0.227.0
+  latest: 2023.3
   version: |
-    2022.1.2.574.0
-  preview: 2023.3-preview
+    2023.2
+    2023.1.1.380.0
+  preview: latest-preview
 jobs:
   version:
     runs-on: ubuntu-latest
@@ -82,19 +83,19 @@ jobs:
           retry_on: timeout
           command: |
             docker pull ${{ steps.vars.outputs.basearm }}
+      - name: docker login
+        id: login
+        continue-on-error: true
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
       - name: build x86 docker image
         id: build
         uses: nick-invision/retry@v2
         with:
           timeout_minutes: 10
           max_attempts: 3
-          retry_on: timeout
+          retry_on: any
           command: |
-            docker build --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tags }} --platform linux/amd64 --target x86 .
-      - name: docker login
-        id: login
-        continue-on-error: true
-        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+            docker build --progress plain --no-cache --file Dockerfile-amd64 --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tags }} --platform linux/amd64 .
       - name: push to docker hub
         id: push
         if: steps.login.outcome == 'success'
@@ -108,9 +109,10 @@ jobs:
         with:
           timeout_minutes: 10
           max_attempts: 3
-          retry_on: timeout
+          retry_on: any
           command: |
-            docker buildx build --load --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tagsarm }} --platform linux/arm64 --target arm .
+            docker system prune -f
+            docker build --progress plain --no-cache --file Dockerfile-arm64 --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tagsarm }} --platform linux/arm64 .
       - name: push arm64 to docker hub
         id: pusharm
         if: steps.buildarm.outcome == 'success'
@@ -119,10 +121,15 @@ jobs:
           echo $tags | xargs -n1 sh -c 'docker push $0'
       - name: update manifest
         if: steps.push.outcome == 'success' && steps.pusharm.outcome == 'success'
-        run: |
-          tags="${{ steps.vars.outputs.tagsarm }}";tags=${tags// -t / }
-          echo $tags | xargs -n1 bash -c 'docker manifest rm ${1//-arm64/} || true' - $1
-          echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
-          echo $tags | xargs -n1 bash -c 'docker manifest create ${1//-arm64/} ${1//-arm64/} $1 --amend' - $1
-          echo $tags | xargs -n1 bash -c 'docker manifest push ${1//-arm64/}' - $1
-          echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_on: timeout
+          command: |
+            tags="${{ steps.vars.outputs.tagsarm }}";tags=${tags// -t / }
+            echo $tags | xargs -n1 bash -c 'docker manifest rm ${1//-arm64/} || true' - $1
+            echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
+            echo $tags | xargs -n1 bash -c 'docker manifest create ${1//-arm64/} ${1//-arm64/} $1 --amend' - $1
+            echo $tags | xargs -n1 bash -c 'docker manifest push ${1//-arm64/}' - $1
+            echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
