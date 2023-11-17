@@ -83,6 +83,10 @@ jobs:
           retry_on: timeout
           command: |
             docker pull ${{ steps.vars.outputs.basearm }}
+      - name: docker login
+        id: login
+        continue-on-error: true
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
       - name: build x86 docker image
         id: build
         uses: nick-invision/retry@v2
@@ -91,11 +95,7 @@ jobs:
           max_attempts: 3
           retry_on: timeout
           command: |
-            docker build --file Dockerfile-amd64 --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tags }} --platform linux/amd64 --target x86 .
-      - name: docker login
-        id: login
-        continue-on-error: true
-        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+            docker build --file Dockerfile-amd64 --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tags }} --platform linux/amd64 .
       - name: push to docker hub
         id: push
         if: steps.login.outcome == 'success'
@@ -111,7 +111,8 @@ jobs:
           max_attempts: 3
           retry_on: timeout
           command: |
-            docker buildx build --file Dockerfile-arm64 --load --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tagsarm }} --platform linux/arm64 --target arm .
+            docker system prune -f
+            docker build --file Dockerfile-arm64 --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tagsarm }} --platform linux/arm64 .
       - name: push arm64 to docker hub
         id: pusharm
         if: steps.buildarm.outcome == 'success'
