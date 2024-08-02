@@ -14,7 +14,7 @@ env:
     irishealth-community
     iris-ml-community
     irishealth-ml-community
-  latest: 2024.1
+  latest: 2024.2
   version: |
     2023.3
     2023.2
