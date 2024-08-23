@@ -18,6 +18,8 @@ ENV PATH="$PATH:/home/irisowner/.local/bin"
 
 COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} iris_ipm.py /usr/irissys/lib/python/
 
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+
 RUN pip install irissqlcli && \
     cat /usr/irissys/lib/python/iris_ipm.py >> /usr/irissys/lib/python/iris.py
 

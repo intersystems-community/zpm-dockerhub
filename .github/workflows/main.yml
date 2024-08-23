@@ -14,11 +14,12 @@ env:
     irishealth-community
     iris-ml-community
     irishealth-ml-community
-  latest: 2024.2
+  latest: latest-em
   version: |
-    2023.3
-    2023.2
-    2023.1.1.380.0
+    latest-cd
+    2024.1
+    2024.2
+    2023.1.4.580.0
   preview: latest-preview
 jobs:
   version:
