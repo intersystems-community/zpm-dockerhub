@@ -18,6 +18,8 @@ set sc=##Class(Config.MapPackages).Create("%ALL","IPM",.pMap)
 if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
 set sc=##Class(Config.MapGlobals).Create("%ALL","%IPM.*",.pMap)
 if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set sc=##Class(Config.MapGlobals).Create("%ALL","IPM.Repo.*",.pMap)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
 set sc=##Class(Config.MapGlobals).Create("%SYS","IPM.*",.pMap)
 if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
 set sc=##Class(Config.MapRoutines).Create("%ALL","%IPM.*",.pMap)
@@ -29,6 +31,7 @@ if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
 zn "IPM"
 set sc = ##class(%SYSTEM.OBJ).Load("/tmp/zpm.xml", "c")
 if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+zpm "repo -reset-defaults"
 zn "%SYS"
 do ##class(Config.Namespaces).Delete("IPM")
 do ##class(SYS.Database).Defragment(pDB("Directory"))
