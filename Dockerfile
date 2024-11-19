@@ -2,50 +2,13 @@ FROM --platform=$BUILDPLATFORM intersystems/iris-community:2024.1-linux-${BUILDA
 
 ARG IPM_INSTALLER=https://pm.community.intersystems.com/packages/zpm/latest/installer
 
+COPY ./iris.script /tmp/iris.script
+
 RUN \
   wget -q $IPM_INSTALLER -O /tmp/zpm.xml && \
   mkdir /usr/irissys/mgr/zpm && \
   iris start $ISC_PACKAGE_INSTANCENAME quietly && \
-  /bin/echo -e \
-    "set pNS(\"Globals\")=\"%DEFAULTDB\"\n" \
-    "set sc=##class(Config.Namespaces).Create(\"%ALL\",.pNS)\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set pDB(\"Directory\")=\"/usr/irissys/mgr/zpm/\"\n" \
-    "set sc=##class(SYS.Database).CreateDatabase(pDB(\"Directory\"), 30)\n" \
-    "do ##class(SYS.Database).MountDatabase(pDB(\"Directory\"))\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set sc=##class(Config.Databases).Create(\"IPM\",.pDB)\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set pNamespace(\"Globals\")=\"IPM\"\n" \
-    "set pNamespace(\"Routines\")=\"IPM\"\n" \
-    "set sc=##Class(Config.Namespaces).Create(\"IPM\",.pNamespace)\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set pMap(\"Database\")=\"IPM\"\n" \
-    "set sc=##Class(Config.MapPackages).Create(\"%ALL\",\"%IPM\",.pMap)\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set sc=##Class(Config.MapPackages).Create(\"%ALL\",\"IPM\",.pMap)\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set sc=##Class(Config.MapGlobals).Create(\"%ALL\",\"%IPM.*\",.pMap)\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set sc=##Class(Config.MapGlobals).Create(\"%SYS\",\"IPM.*\",.pMap)\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set sc=##Class(Config.MapRoutines).Create(\"%ALL\",\"%IPM.*\",.pMap)\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set sc=##Class(Config.MapRoutines).Create(\"%ALL\",\"%ZLANGF00\",.pMap)\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "set sc=##Class(Config.MapRoutines).Create(\"%ALL\",\"%ZLANGC00\",.pMap)\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "zn \"IPM\"\n" \
-    "set sc = ##class(%SYSTEM.OBJ).Load(\"/tmp/zpm.xml\", \"c\")\n" \
-    "if '\$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)\n" \
-    "zn \"%SYS\"\n" \
-    "do ##class(Config.Namespaces).Delete(\"IPM\")\n" \
-    "do ##class(SYS.Database).Defragment(pDB(\"Directory\"))\n" \
-    "do ##class(SYS.Database).CompactDatabase(pDB(\"Directory\"),100)\n" \
-    "do ##class(SYS.Database).ReturnUnusedSpace(pDB(\"Directory\"))\n" \
-    "do ##class(SYS.Database).DismountDatabase(pDB(\"Directory\"))\n" \
-    "halt\n" \
-  | iris session $ISC_PACKAGE_INSTANCENAME -U %SYS && \
+  iris session $ISC_PACKAGE_INSTANCENAME -U %SYS < /tmp/iris.script && \
   iris stop $ISC_PACKAGE_INSTANCENAME quietly
 
 FROM --platform=$TARGETPLATFORM intersystems/iris-community:2024.1-linux-${BUILDARCH}
