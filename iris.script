@@ -1,0 +1,41 @@
+set pNS("Globals")="%DEFAULTDB"
+set sc=##class(Config.Namespaces).Create("%ALL",.pNS)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set pDB("Directory")="/usr/irissys/mgr/zpm/"
+set sc=##class(SYS.Database).CreateDatabase(pDB("Directory"), 30)
+do ##class(SYS.Database).MountDatabase(pDB("Directory"))
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set sc=##class(Config.Databases).Create("IPM",.pDB)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set pNamespace("Globals")="IPM"
+set pNamespace("Routines")="IPM"
+set sc=##Class(Config.Namespaces).Create("IPM",.pNamespace)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set pMap("Database")="IPM"
+set sc=##Class(Config.MapPackages).Create("%ALL","%IPM",.pMap)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set sc=##Class(Config.MapPackages).Create("%ALL","IPM",.pMap)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set sc=##Class(Config.MapGlobals).Create("%ALL","%IPM.*",.pMap)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set sc=##Class(Config.MapGlobals).Create("%ALL","IPM.Repo.*",.pMap)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set sc=##Class(Config.MapGlobals).Create("%SYS","IPM.*",.pMap)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set sc=##Class(Config.MapRoutines).Create("%ALL","%IPM.*",.pMap)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set sc=##Class(Config.MapRoutines).Create("%ALL","%ZLANGF00",.pMap)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+set sc=##Class(Config.MapRoutines).Create("%ALL","%ZLANGC00",.pMap)
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+zn "IPM"
+set sc = ##class(%SYSTEM.OBJ).Load("/tmp/zpm.xml", "c")
+if '$Get(sc,1) do ##class(%SYSTEM.Process).Terminate(, 1)
+zpm "repo -reset-defaults"
+zn "%SYS"
+do ##class(Config.Namespaces).Delete("IPM")
+do ##class(SYS.Database).Defragment(pDB("Directory"))
+do ##class(SYS.Database).CompactDatabase(pDB("Directory"),100)
+do ##class(SYS.Database).ReturnUnusedSpace(pDB("Directory"))
+do ##class(SYS.Database).DismountDatabase(pDB("Directory"))
+halt

@@ -21,7 +21,7 @@ def ipm(cmd, *args):
 
         status.put(True)
 
-        res = iris.cls("%ZPM.PackageManager").Shell(cmd)
+        res = iris.cls("%IPM.Main").Shell(cmd)
         print('')
         if res != 1:
             status.get()
