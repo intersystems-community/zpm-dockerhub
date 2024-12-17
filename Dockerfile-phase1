@@ -1,6 +1,6 @@
 ARG IMAGE=intersystems/iris-community:latest-cd
 ARG DEV=0
-FROM $IMAGE
+FROM --platform=${BUILDPLATFORM} $IMAGE
 
 ARG IPM_INSTALLER=https://pm.community.intersystems.com/packages/zpm/latest/installer
 
