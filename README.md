@@ -8,4 +8,4 @@ The published images could be found at following Docker Repositories:
 [InterSystems IRIS Community Edition](https://hub.docker.com/r/intersystemsdc/iris-community)
 [InterSystems IRIS Community Edition for Health:](https://hub.docker.com/r/intersystemsdc/irishealth-community)
 
-Current version of [ZPM installed](https://openexchange.intersystems.com/package/ObjectScript-Package-Manager-2): 0.7.0
+Current version of [IPM installed](https://openexchange.intersystems.com/package/InterSystems-Package-Manager-1): 0.9.0

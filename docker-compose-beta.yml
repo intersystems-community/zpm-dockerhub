@@ -1,0 +1,16 @@
+version: '3.6'
+services:
+  iris:
+    build: 
+      context: .
+      dockerfile: Dockerfile-amd64
+      args:
+        IPM_INSTALLER: https://github.com/intersystems/ipm/releases/download/v0.9.0-beta.31/zpm-0.9.0-beta.31.xml
+    restart: always
+    ports: 
+      - 1972
+      - 57774:52773
+      - 53773
+    volumes:
+      - ~/iris.key:/usr/irissys/mgr/iris.key
+      - ./:/irisdev/app
