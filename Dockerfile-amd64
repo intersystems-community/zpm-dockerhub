@@ -1,4 +1,5 @@
 # syntax = edrevo/dockerfile-plus
+ARG IMAGE=containers.intersystems.com/intersystems/iris-community:latest-cd
 
 INCLUDE+ Dockerfile-phase1
 

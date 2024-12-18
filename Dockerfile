@@ -11,7 +11,7 @@ RUN \
   iris session $ISC_PACKAGE_INSTANCENAME -U %SYS < /tmp/iris.script && \
   iris stop $ISC_PACKAGE_INSTANCENAME quietly
 
-FROM --platform=$TARGETPLATFORM intersystems/iris-community:2024.1-linux-${BUILDARCH}
+FROM --platform=$TARGETPLATFORM intersystems/iris-community:2024.1-linux-${TARGETARCH}
 
 USER root
 
