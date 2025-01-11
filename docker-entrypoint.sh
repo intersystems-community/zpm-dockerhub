@@ -96,7 +96,7 @@ docker_process_sql() {
 docker_setup_namespace() {
 	if ! docker_process_sql --nspace $IRIS_NAMESPACE -e 'SELECT $Namespace;' > /dev/null 2>&1; then
 		echo "Create namespace: $IRIS_NAMESPACE" 
-		docker_process_sql --nspace %SYS <<-EOSQL > /dev/null
+		docker_process_sql iris+emb:///%SYS <<-EOSQL > /dev/null
 			CREATE DATABASE "$IRIS_NAMESPACE";
 		EOSQL
 	fi
