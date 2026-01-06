@@ -1,15 +1,17 @@
-version: '3.6'
 services:
   iris:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BASE_IMAGE: containers.intersystems.com/intersystems/iris-community:latest-em
+        ML: "true"
     restart: always
-    command: --ckeck-caps false
-    ports: 
+    ports:
       - 1972
-      - 52774:52773
-      - 53773
+      - 52773
     volumes:
       - ~/iris.key:/usr/irissys/mgr/iris.key
-      - ./:/irisdev/app
+    command:
+      - -a
+      - iris session iris -U%SYS '##class(Security.Users).UnExpireUserPasswords("*")'

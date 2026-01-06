@@ -1,4 +1,5 @@
-FROM --platform=$BUILDPLATFORM intersystems/iris-community:2024.1-linux-${BUILDARCH}
+ARG BASE_IMAGE=containers.intersystems.com/intersystems/iris-community:latest-em
+FROM ${BASE_IMAGE} AS base
 
 ARG IPM_INSTALLER=https://pm.community.intersystems.com/packages/zpm/latest/installer
 
@@ -11,7 +12,7 @@ RUN \
   iris session $ISC_PACKAGE_INSTANCENAME -U %SYS < /tmp/iris.script && \
   iris stop $ISC_PACKAGE_INSTANCENAME quietly
 
-FROM --platform=$TARGETPLATFORM intersystems/iris-community:2024.1-linux-${TARGETARCH}
+FROM ${BASE_IMAGE}
 
 USER root
 
@@ -35,7 +36,10 @@ COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} iris_ipm.py /usr/ir
 
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
+ARG ML=false
+
 RUN pip install irissqlcli && \
+    ([ "$ML" = "true" ] && python3 -m pip install --index-url https://registry.intersystems.com/pypi/simple --no-cache-dir --target /usr/irissys/mgr/python intersystems-iris-automl matplotlib || true) && \
     cat /usr/irissys/lib/python/iris_ipm.py >> /usr/irissys/lib/python/iris.py
 
 COPY iriscli /home/irisowner/bin/

@@ -1,8 +1,0 @@
-# syntax = edrevo/dockerfile-plus
-ARG IMAGEARM=containers.intersystems.com/intersystems/iris-community:latest-cd
-
-INCLUDE+ Dockerfile-phase1
-
-FROM --platform=linux/arm64 $IMAGEARM as arm
-
-INCLUDE+ Dockerfile-phase2

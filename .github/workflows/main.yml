@@ -5,133 +5,177 @@ on:
     branches:
       - master
   repository_dispatch:
-    types:
-      - release
+    types: [test workflow]
+  workflow_dispatch:
+    inputs:
+      ignore_cache:
+        description: 'Ignore cache when collecting manifests'
+        required: false
+        default: true
+        type: boolean
+  schedule:
+    # Runs "At 04:15." (see https://crontab.guru)
+    - cron: '15 4 * * *'
+
 env:
-  orgname: intersystemsdc
-  name: |
+  IMAGE_REPO: containers.intersystems.com/intersystems
+  ORGNAME: intersystemsdc
+  IMAGE: |
     iris-community
     irishealth-community
-    iris-ml-community
-    irishealth-ml-community
-  latest: latest-em
-  version: |
+  TAG: |
+    latest-em
     latest-cd
-    2025.1
-    2024.2
-    2024.3
-  preview: latest-preview
+    latest-preview
+
 jobs:
-  version:
+  prepare:
     runs-on: ubuntu-latest
     outputs:
-      name: ${{ steps.set-matrix.outputs.name }}
-      version: ${{ steps.set-matrix.outputs.version }}
+      images: ${{ steps.collect.outputs.images }}
+      targets: ${{ steps.collect.outputs.targets }}
+      do_build: ${{ steps.collect.outputs.do_build }}
     steps:
-      - id: set-matrix
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - uses: actions/cache/restore@v4
+        if: ${{ github.event.inputs.ignore_cache != 'true' }}
+        id: restore-cache
+        with:
+          path: manifests.txt
+          key: manifests
+          restore-keys: |
+            manifests-
+      - name: collect manifests
+        id: collect
         run: |
-          echo name=`jq -Rsc 'split("\n") | map(select(length > 0))' <<< $'${{ env.name }}' ` >> $GITHUB_OUTPUT
-          echo version=`jq -Rsc 'split("\n") | map(select(length > 0))' <<< $'${{ env.latest }}\n${{ env.version }}\n${{ env.preview }}' ` >> $GITHUB_OUTPUT
+          IMAGE="${{ env.IMAGE }}"
+          TAG="${{ env.TAG }}"
+          for baseimage in ${IMAGE[@]}; do
+            for tag in ${TAG[@]}; do
+              image="${{ env.IMAGE_REPO }}/${baseimage}:${tag}"
+              echo "Inspecting $image"
+              docker manifest inspect $image | jq ".manifests[] | ( .platform.architecture + \" ${baseimage}\" + \" ${tag}\" + \" \" + .digest )" -r
+            done
+          done > latest_manifests.txt
+          cat latest_manifests.txt
+          images=$(while IFS= read -r line; do
+            if ! grep "$line" manifests.txt >/dev/null 2>&1; then
+              echo $line | awk -F' ' '{printf "{\"platform\": \"linux/%s\", \"image\": \"%s\", \"tag\": \"%s\"}\n", $1,$2,$3}'
+            fi
+          done < "latest_manifests.txt" | jq -cs '.[] | (select(.platform == "linux/arm64" ) | .runner = "ubuntu-24.04-arm"), (select(.platform == "linux/amd64" ) | .runner = "ubuntu-latest")' | jq -cs '.' )
+          mv latest_manifests.txt manifests.txt
+          images=$(echo $images | jq 'map(.target=.image)' | jq -cs '.[]' )
+          # add ml variants
+          images=$(echo $images | jq 'map([.,(.target=(.target|sub("-";"-ml-")))] | .[])' | jq -cs '.[]' )
+          [ ! -z "${{ vars.DOCKER_ORGNAME }}" ] && ORGNAME="${{ vars.DOCKER_ORGNAME }}"
+          images=$(echo $images | jq "map(.orgname=\"$ORGNAME\")" -c )
+          echo $images | jq
+          echo images="$images" >> $GITHUB_OUTPUT
+          ([[ "$images" != "[]" ]] && echo do_build=true || echo do_build=false ) >> $GITHUB_OUTPUT
+          targets=$(echo $images | jq '.[] | {target, tag, orgname}'  | jq -cs '.[]' | sort | uniq | jq -cs '.' )
+          echo targets="$targets" >> $GITHUB_OUTPUT
+      - name: Upload file
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifests
+          path: manifests.txt
+      - uses: actions/cache/save@v4
+        with:
+          key: manifests-${{ github.run_id }}
+          path: manifests.txt
+
   build:
-    needs:
-      - version
+    needs: prepare
+    if: ${{ needs.prepare.outputs.do_build != 'false' }}
     strategy:
       fail-fast: false
       matrix:
-        name: ${{ fromJSON(needs.version.outputs.name ) }}
-        version: ${{ fromJSON(needs.version.outputs.version ) }}
+        include: ${{ fromJson(needs.prepare.outputs.images) }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Pull image
+        id: image
+        run: |
+          base=${{ env.IMAGE_REPO }}/${{ matrix.image }}:${{ matrix.tag }}
+          docker pull $base
+          version=$(docker image inspect --format '{{index .Config.Labels "com.intersystems.platform-version"}}' $base | cut -d'.' -f1-2)
+          echo base=$base >> $GITHUB_OUTPUT
+          echo version=$version >> $GITHUB_OUTPUT
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          build-args: |
+            BASE_IMAGE=${{ env.IMAGE_REPO }}/${{ matrix.image }}:${{ matrix.tag }}
+            ML=$(if [[ "${{ matrix.target }}" == *-ml-* ]]; then echo "true"; else echo "false"; fi)
+          push: true
+          tags: ${{ matrix.orgname }}/${{ matrix.target }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+      - name: Save digest as artifact
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          # strip "sha256:" prefix, use remainder as filename
+          echo ${{ steps.image.outputs.version }} > "$RUNNER_TEMP/digests/${digest#sha256:}"
+        shell: bash
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.target }}-${{ matrix.tag }}-${{ matrix.runner }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+  merge:
+    needs:
+      - prepare
+      - build
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.prepare.outputs.targets) }}
     runs-on: ubuntu-latest
     steps:
-      - name: set variables
-        id: vars
-        run: |
-          echo "base=containers.intersystems.com/intersystems/${{ matrix.name }}:${{ matrix.version }}"  >> $GITHUB_OUTPUT
-          echo "basearm=containers.intersystems.com/intersystems/${{ matrix.name }}-arm64:${{ matrix.version }}" >> $GITHUB_OUTPUT
-          image=${{ env.orgname }}/${{ matrix.name }}
-          [ '${{ secrets.DOCKER_ORGNAME }}' != '' ] && image=${{ secrets.DOCKER_ORGNAME }}/${{ matrix.name }}
-          version=${{ matrix.version }}-zpm
-          echo "image=$image" >> $GITHUB_OUTPUT
-          echo "version=$version" >> $GITHUB_OUTPUT
-          tags=" -t $image:$version"
-          [ '${{ matrix.version }}' == '${{ env.latest }}' ] && tags+=" -t $image:latest"
-          [ '${{ matrix.version }}' == '${{ env.preview }}' ] && tags+=" -t $image:preview"
-          echo "tags=$tags" >> $GITHUB_OUTPUT
-          tagsarm=" -t $image-arm64:$version"
-          [ '${{ matrix.version }}' == '${{ env.latest }}' ] && tagsarm+=" -t $image-arm64:latest"
-          [ '${{ matrix.version }}' == '${{ env.preview }}' ] && tagsarm+=" -t $image-arm64:preview"
-          echo "tagsarm=$tagsarm" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v3
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.target }}-${{ matrix.tag }}-*
+          merge-multiple: true
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          platforms: linux/amd64,linux/arm64
-      - name: pull docker image
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          retry_on: timeout
-          command: |
-            docker pull ${{ steps.vars.outputs.base }}
-      - name: pull arm64 docker image
-        id: pullarm
-        continue-on-error: true
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          retry_on: timeout
-          command: |
-            docker pull ${{ steps.vars.outputs.basearm }}
-      - name: docker login
-        id: login
-        continue-on-error: true
-        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-      - name: build x86 docker image
-        id: build
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_on: any
-          command: |
-            docker build --progress plain --no-cache --file Dockerfile-amd64 --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tags }} --platform linux/amd64 .
-      - name: push to docker hub
-        id: push
-        if: steps.login.outcome == 'success'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create multi-arch manifest and push
+        working-directory: ${{ runner.temp }}/digests
         run: |
-          tags="${{ steps.vars.outputs.tags }}";tags=${tags// -t / }
-          echo $tags | xargs -n1 sh -c 'docker push $0'
-      - name: build arm64 docker image
-        id: buildarm
-        if: steps.pullarm.outcome == 'success'
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_on: any
-          command: |
-            docker system prune -f
-            docker build --progress plain --no-cache --file Dockerfile-arm64 --build-arg IMAGE=${{ steps.vars.outputs.base }} --build-arg IMAGEARM=${{ steps.vars.outputs.basearm }} ${{ steps.vars.outputs.tagsarm }} --platform linux/arm64 .
-      - name: push arm64 to docker hub
-        id: pusharm
-        if: steps.buildarm.outcome == 'success'
-        run: |
-          tags="${{ steps.vars.outputs.tagsarm }}";tags=${tags// -t / }
-          echo $tags | xargs -n1 sh -c 'docker push $0'
-      - name: update manifest
-        if: steps.push.outcome == 'success' && steps.pusharm.outcome == 'success'
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_on: timeout
-          command: |
-            tags="${{ steps.vars.outputs.tagsarm }}";tags=${tags// -t / }
-            echo $tags | xargs -n1 bash -c 'docker manifest rm ${1//-arm64/} || true' - $1
-            echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
-            echo $tags | xargs -n1 bash -c 'docker manifest create ${1//-arm64/} ${1//-arm64/} $1 --amend' - $1
-            echo $tags | xargs -n1 bash -c 'docker manifest push ${1//-arm64/}' - $1
-            echo $tags | xargs -n1 bash -c 'docker manifest inspect ${1//-arm64/}' - $1
+          # turn each file name (a sha256 without prefix) into IMAGE@sha256:...
+          version=$(cat * | head -1)
+          docker buildx imagetools create \
+            -t ${{ matrix.orgname }}/${{ matrix.target }}:${{ matrix.tag }} \
+            -t ${{ matrix.orgname }}/${{ matrix.target }}:${{ matrix.tag }}-zpm \
+            -t ${{ matrix.orgname }}/${{ matrix.target }}:${version} \
+            -t ${{ matrix.orgname }}/${{ matrix.target }}:${version}-zpm \
+            $([[ "${{ matrix.tag }}" == "latest-em" ]] && echo -t ${{ matrix.orgname }}/${{ matrix.target }}:latest ) \
+            $([[ "${{ matrix.tag }}" == "latest-preview" ]] && echo -t ${{ matrix.orgname }}/${{ matrix.target }}:preview ) \
+            $(printf '${{ matrix.orgname }}/${{ matrix.target }}@sha256:%s ' *)
+
+      - name: Inspect final image (optional)
+        run: docker buildx imagetools inspect ${{ matrix.orgname }}/${{ matrix.target }}:${{ matrix.tag }}
