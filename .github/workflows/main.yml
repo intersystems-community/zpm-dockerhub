@@ -66,8 +66,9 @@ jobs:
           done < "latest_manifests.txt" | jq -cs '.[] | (select(.platform == "linux/arm64" ) | .runner = "ubuntu-24.04-arm"), (select(.platform == "linux/amd64" ) | .runner = "ubuntu-latest")' | jq -cs '.' )
           mv latest_manifests.txt manifests.txt
           images=$(echo $images | jq 'map(.target=.image)' | jq -cs '.[]' )
+          images=$(echo $images | jq 'map(.ml=false)' | jq -cs '.[]' )
           # add ml variants
-          images=$(echo $images | jq 'map([.,(.target=(.target|sub("-";"-ml-")))] | .[])' | jq -cs '.[]' )
+          images=$(echo $images | jq 'map([.+{ml:false},.+{ml:true,target:(.target|sub("-";"-ml-"))}] | .[])' | jq -cs '.[]' )
           [ ! -z "${{ vars.DOCKER_ORGNAME }}" ] && ORGNAME="${{ vars.DOCKER_ORGNAME }}"
           images=$(echo $images | jq "map(.orgname=\"$ORGNAME\")" -c )
           echo $images | jq
@@ -119,7 +120,7 @@ jobs:
           context: .
           build-args: |
             BASE_IMAGE=${{ env.IMAGE_REPO }}/${{ matrix.image }}:${{ matrix.tag }}
-            ML=$(if [[ "${{ matrix.target }}" == *-ml-* ]]; then echo "true"; else echo "false"; fi)
+            ML=${{ matrix.ml }}
           push: true
           tags: ${{ matrix.orgname }}/${{ matrix.target }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
